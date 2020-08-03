@@ -1,8 +1,8 @@
 using System;
 using System.Web.Mvc;
 using Litium.Web.Models.Websites;
-using Litium.Accelerator.Abstractions.ViewModels.Product;
-using Litium.Accelerator.Extension.Builders.Product;
+using Litium.Accelerator.ViewModels.Product;
+using Litium.Accelerator.Builders.Product;
 
 namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
 {

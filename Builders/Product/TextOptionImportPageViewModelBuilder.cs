@@ -21,7 +21,7 @@ using Litium.Web.Models.Websites;
 using Litium.Websites;
 using Litium.Accelerator.ViewModels.Product;
 
-namespace Litium.Accelerator.Extension.Builders.Product
+namespace Litium.Accelerator.Builders.Product
 {
     public class TextOptionImportPageViewModelBuilder : IViewModelBuilder<TextOptionImportPageViewModel>
     {
