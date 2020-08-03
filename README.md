@@ -25,3 +25,5 @@ An importer for [https://www.litium.com/](https://www.litium.com/) to create or 
     |Original|Original|
     |Frayed|Well worn|
 
+![Import UI](/TextOptionImporter.PNG)
+Format: ![Alt Text](Litium Text Option Importer UI)
