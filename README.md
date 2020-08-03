@@ -16,6 +16,7 @@ An importer for [Litiums Ecommerce Platform](https://www.litium.com/) to create 
 	 i. The panel can be placed under different Areas by changing "ProductArea" here: [https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8).
  6. Upload 1 Excel file (.xlsx) to the media folder "TextOptionImport".
 	 i. Litiums Media uploader is used. That way there is no problems with larger files. 
+
 	 ii. The content of the excel file has to look like this (Multiple of the same is OK, it will be ignored): 
 	 
     |Key|Value|
