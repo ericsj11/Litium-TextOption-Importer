@@ -2,7 +2,7 @@
 
 An importer for [https://www.litium.com/](https://www.litium.com/) to create or update TextOptions fields for all Areas. (*Products, Media, Customers, Websites as of Litium 7*)
 
-## Steps to instal and use
+## Steps to Install and Use
 
  1. Copy all files in the Repo into the project. 
 	 i. Change namespaces if you need to add them to extension projects.
