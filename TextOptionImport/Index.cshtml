@@ -1,0 +1,42 @@
+@using Litium.Accelerator.Abstractions.ViewModels.Product;
+@model TextOptionImportPageViewModel
+
+@{
+    ViewContext.RouteData.DataTokens["BareLayout"] = true;
+}
+
+<div style="padding: 15px;">
+    <h1>@Model.Title</h1>
+
+    @Html.Raw(Model.Text)
+
+    @if (Model.NumberOfFiles == 1)
+    {
+        <h4 style="color: green;">There is a correct number of files in the Media folder "TextOptionImport". Just make sure it is a .xlsx file!</h4>
+    }
+    else
+    {
+        <h4 style="color: red;">There is <b>NOT</b> a correct number of files in the folder "TextOptionImport". Make sure it is <b>only 1 .xlsx</b> file!</h4>
+    }
+
+    @using (Html.BeginForm("Index", "TextOptionImport", FormMethod.Post))
+    {
+        <h4>TextOption Area:</h4>
+        @Html.DropDownListFor(model => model.Area, Model.Areas)
+
+        <h4>TextOption MultiCulture:</h4>
+        @Html.CheckBoxFor(m => m.IsMultiCulture)
+
+        <h4>TextOption ID:</h4>
+        @Html.TextBoxFor(m => m.TextOptionName)
+        <br />
+        <br />
+
+        <input type="submit" value="Import" @(Model.NumberOfFiles == 1 && !Model.Success ? string.Empty : "disabled") />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <h3 style="color: @(Model.Success ? "green" : "red");">@Model.Message</h3>
+    }
+</div>
