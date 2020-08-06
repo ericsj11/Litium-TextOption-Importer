@@ -10,7 +10,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
 
     i. Change namespaces if you need to add them to extension projects.
  2. Build the project.
- 3. Create a page in the CMS with the url "Panels/TextOptionImport".  And add describing texts.
+ 3. Create a page in the CMS with the url "Panels/TextOptionImport".  And add describing texts if needed.
 
 	 i. Or change to prefered URL here: [https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L12](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L12).
  4. Check if the new panel is added in the PIM.
@@ -22,7 +22,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
 		 
 	 ii. **Important:** The **Key** and **Value** has to be on the first row of the Excel and starts with **Uppercase**!  
 
-	 iiii. **Important:** The content of the excel file has to look like this (Multiple of the same is OK, it will be ignored):
+	 iii. **Important:** The content of the excel file has to look like this (Multiple of the same is OK, it will be ignored):
 	 
     |Key|Value|
     |--|--|
