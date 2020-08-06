@@ -28,3 +28,5 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
     |ThirdPary|Third Party|
     |Original|Original|
     |Frayed|Well worn|
+
+        iii. Value is the translation and will be put into **en-US** and **sv-SE**. Dynamic support for language will come.
