@@ -27,7 +27,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
     |Key|Value|
     |--|--|
     |Original|Original|
-    |ThirdPary|Third Party|
+    |ThirdParty|Third Party|
     |Original|Original|
     |Frayed|Well worn|
 
