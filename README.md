@@ -14,7 +14,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
  4. Check if the new panel is added in the PIM.
 
 	 i. The panel can be placed under different Areas by changing "ProductArea" here: [https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8).
- 5. You can now use the panel. The files can't be to large! (Around 2mb, but it should not be a problem for TextOption, and only 2 columns in the XML.
+ 5. You can now use the panel. The files can't be to large! (Around 2mb, but it should not be a problem for TextOption, and only 2 columns in the Excel.
 
 	 i. **Important** that **Key** and **Value** is on the first row! And starts with **Uppercase**!  
 
