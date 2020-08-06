@@ -10,29 +10,32 @@
 
     @Html.Raw(Model.Text)
 
-    @if (Model.NumberOfFiles == 1)
+    @using (Html.BeginForm("Index", "TextOptionImport", FormMethod.Post, new { enctype = "multipart/form-data" }))
     {
-        <h4 style="color: green;">There is a correct number of files in the Media folder "TextOptionImport". Just make sure it is a .xlsx file!</h4>
-    }
-    else
-    {
-        <h4 style="color: red;">There is <b>NOT</b> a correct number of files in the folder "TextOptionImport". Make sure it is <b>only 1 .xlsx</b> file!</h4>
-    }
+        <br />
+        <h4>Upload File:</h4>
+        <input type="file" name="file" id="file" />
+        <br />
+        <br />
 
-    @using (Html.BeginForm("Index", "TextOptionImport", FormMethod.Post))
-    {
         <h4>TextOption Area:</h4>
-        @Html.DropDownListFor(model => model.Area, Model.Areas)
+        <div style="width: 300px;">
+            @Html.DropDownListFor(model => model.Area, Model.Areas)
+        </div>
+        <br />
+        <br />
 
         <h4>TextOption MultiCulture:</h4>
         @Html.CheckBoxFor(m => m.IsMultiCulture)
+        <br />
+        <br />
 
         <h4>TextOption ID:</h4>
         @Html.TextBoxFor(m => m.TextOptionName)
         <br />
         <br />
 
-        <input type="submit" value="Import" @(Model.NumberOfFiles == 1 && !Model.Success ? string.Empty : "disabled") />
+        <input type="submit" value="Import" />
     }
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))

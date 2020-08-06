@@ -1,19 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Web.Mvc;
-using ExcelDataReader;
 using Litium;
 using Litium.Accelerator.Builders;
 using Litium.Customers;
 using Litium.FieldFramework;
 using Litium.FieldFramework.FieldTypes;
-using Litium.Foundation.Modules.ExtensionMethods;
 using Litium.Media;
 using Litium.Products;
 using Litium.Runtime.AutoMapper;
@@ -25,28 +20,16 @@ namespace Litium.Accelerator.Builders.Product
 {
     public class TextOptionImportPageViewModelBuilder : IViewModelBuilder<TextOptionImportPageViewModel>
     {
-        private readonly FolderService _folderService;
-        private readonly FileService _fileService;
-        private readonly FieldTemplateService _fieldTemplateService;
         private readonly FieldDefinitionService _fieldDefinitionService;
 
-        public TextOptionImportPageViewModelBuilder(
-            FolderService folderService,
-            FileService fileService,
-            FieldTemplateService fieldTemplateService,
-            FieldDefinitionService fieldDefinitionService)
+        public TextOptionImportPageViewModelBuilder(FieldDefinitionService fieldDefinitionService)
         {
-            _folderService = folderService;
-            _fileService = fileService;
-            _fieldTemplateService = fieldTemplateService;
             _fieldDefinitionService = fieldDefinitionService;
         }
 
         public TextOptionImportPageViewModel Build(PageModel currentPageModel)
         {
             var pageModel = currentPageModel.MapTo<TextOptionImportPageViewModel>();
-
-            pageModel.NumberOfFiles = GetNumberOfFiles();
 
             var areas = GetAreas();
 
@@ -73,112 +56,32 @@ namespace Litium.Accelerator.Builders.Product
             };
         }
 
-        private int GetNumberOfFiles()
+        public void Import(TextOptionImportPageViewModel textOptionImportPageViewModel, DataSet content)
         {
-            var folder = _folderService.Get("TextOptionImport");
-
-            if (folder == null)
-            {
-                var folderFieldTemplate = _fieldTemplateService.GetAll().FirstOrDefault(x => x.Id == MediaNameConstants.DefaultFolderTemplate);
-                if (folderFieldTemplate != null)
-                {
-                    _folderService.Create(
-                        new Folder(folderFieldTemplate.SystemId, "TextOptionImport")
-                        { Id = "TextOptionImport" });
-                }
-
-                return 0;
-            }
-
-            var files = _fileService.GetByFolder(folder.SystemId);
-
-            return files.Count();
-        }
-
-        public void Import(string textOptionName, bool isMultiCulture, string area)
-        {
-            if (string.IsNullOrWhiteSpace(textOptionName))
+            if (string.IsNullOrWhiteSpace(textOptionImportPageViewModel.TextOptionName))
             {
                 throw new Exception("TextOptionName is empty!");
             }
 
-            var textOptionImportFolder = _folderService.Get("TextOptionImport");
-
-            if (textOptionImportFolder == null)
+            if (string.IsNullOrWhiteSpace(textOptionImportPageViewModel.Area))
             {
-                throw new Exception("TextOptionImport folder doesn't exist.");
+                throw new Exception("No Area is selected!");
             }
 
-            var excelFiles = _fileService.GetByFolder(textOptionImportFolder.SystemId).ToList();
-
-            if (excelFiles == null)
-            {
-                throw new Exception("Can't find any excel file in the folder TextOptionImport.");
-            }
-
-            if (excelFiles.Count > 1)
-            {
-                throw new Exception("There are to many files in the folder TextOptionImport. Make sure it's only 1.");
-            }
-
-            var excelFile = excelFiles.FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(excelFile?.Name))
-            {
-                throw new Exception("Excel file name is empty.");
-            }
-
-            var filePath = ConfigurationManager.AppSettings["TextOptionImportPath"];
-
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new Exception("TextOptionImportPath is empty. Set it in web.config.");
-            }
-
-            if (!Directory.Exists(filePath))
-            {
-                Directory.CreateDirectory(filePath);
-            }
-
-            if (System.IO.File.Exists(filePath + excelFile.Name))
-            {
-                System.IO.File.Delete(filePath + excelFile.Name);
-            }
-
-            System.IO.File.WriteAllBytes(filePath + excelFile.Name, excelFile.GetFileContent());
-
-            var thread1 = new Thread(x => ImportTextOptions(filePath + excelFile.Name, textOptionName, isMultiCulture, area));
-            thread1.Start();
+            ImportTextOptions(content, textOptionImportPageViewModel);
         }
 
-        private void ImportTextOptions(string filePath, string textOptionName, bool isMultiCulture, string area)
+        private void ImportTextOptions(DataSet content, TextOptionImportPageViewModel textOptionImportPageViewModel)
         {
             var textOptions = new Dictionary<string, string>();
 
-            IExcelDataReader reader = null;
-
-            //Load file into a stream
-            var stream = System.IO.File.Open(filePath, FileMode.Open, FileAccess.Read);
-
-            //Must check file extension to adjust the reader to the excel file type
-            if (Path.GetExtension(filePath).Equals(".xls"))
+            if (content != null)
             {
-                reader = ExcelReaderFactory.CreateBinaryReader(stream);
-            }
-            else if (Path.GetExtension(filePath).Equals(".xlsx"))
-            {
-                reader = ExcelReaderFactory.CreateOpenXmlReader(stream);
-            }
-
-            if (reader != null)
-            {
-                //Fill DataSet
                 var rowCount = 0;
-                var content = reader.AsDataSet();
 
-                if (content?.Tables == null || content.Tables.Count < 1 || content.Tables[0].Rows.Count < 1)
+                if (content.Tables.Count < 1 || content.Tables[0].Rows.Count < 1)
                 {
-                    throw new Exception($"Can't find any lines in the Excel in path {filePath}");
+                    throw new Exception("Can't find any lines in the uploaded Excel");
                 }
 
                 var columnValueOfFirst = 0;
@@ -227,19 +130,19 @@ namespace Litium.Accelerator.Builders.Product
             timer.Start();
 
             FieldDefinition textOptionField;
-            switch (area)
+            switch (textOptionImportPageViewModel.Area)
             {
                 default:
-                    textOptionField = GetProductAreaFieldDefinition(textOptionName, isMultiCulture);
+                    textOptionField = GetProductAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
                     break;
                 case nameof(CustomerArea):
-                    textOptionField = GetCustomerAreaFieldDefinition(textOptionName, isMultiCulture);
+                    textOptionField = GetCustomerAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
                     break;
                 case nameof(WebsiteArea):
-                    textOptionField = GetWebsiteAreaFieldDefinition(textOptionName, isMultiCulture);
+                    textOptionField = GetWebsiteAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
                     break;
                 case nameof(MediaArea):
-                    textOptionField = GetMediaAreaFieldDefinition(textOptionName, isMultiCulture);
+                    textOptionField = GetMediaAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
                     break;
             }
 
@@ -263,7 +166,7 @@ namespace Litium.Accelerator.Builders.Product
             {
                 if (option != null && option.Items.FirstOrDefault(x => x.Value == textOption.Key) == null)
                 {
-                    this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value} to Field: {textOptionField.Id} in Area: {area}");
+                    this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value} to Field: {textOptionField.Id} in Area: {textOptionImportPageViewModel.Area}");
 
                     option.Items.Add(new TextOption.Item
                     {
@@ -275,8 +178,6 @@ namespace Litium.Accelerator.Builders.Product
 
             _fieldDefinitionService.Update(textOptionField);
 
-            stream.Close();
-            reader?.Close();
             timer.Stop();
 
             this.Log().Info($"Time taken in seconds: {timer.Elapsed.TotalSeconds}");
@@ -288,6 +189,11 @@ namespace Litium.Accelerator.Builders.Product
 
             if (textOptionField != null)
             {
+                if (textOptionField.MultiCulture != isMultiCulture)
+                {
+                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
+                }
+
                 return textOptionField;
             }
 
@@ -318,6 +224,11 @@ namespace Litium.Accelerator.Builders.Product
 
             if (textOptionField != null)
             {
+                if (textOptionField.MultiCulture != isMultiCulture)
+                {
+                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
+                }
+
                 return textOptionField;
             }
 
@@ -348,6 +259,11 @@ namespace Litium.Accelerator.Builders.Product
 
             if (textOptionField != null)
             {
+                if (textOptionField.MultiCulture != isMultiCulture)
+                {
+                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
+                }
+
                 return textOptionField;
             }
 
@@ -378,6 +294,11 @@ namespace Litium.Accelerator.Builders.Product
 
             if (textOptionField != null)
             {
+                if (textOptionField.MultiCulture != isMultiCulture)
+                {
+                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
+                }
+
                 return textOptionField;
             }
 

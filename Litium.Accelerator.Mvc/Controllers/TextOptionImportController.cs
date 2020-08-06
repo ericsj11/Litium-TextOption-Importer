@@ -1,5 +1,8 @@
 using System;
+using System.Data;
+using System.IO;
 using System.Web.Mvc;
+using ExcelDataReader;
 using Litium.Web.Models.Websites;
 using Litium.Accelerator.ViewModels.Product;
 using Litium.Accelerator.Builders.Product;
@@ -26,11 +29,11 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
         }
 
         [HttpPost]
-        public ActionResult Index(TextOptionImportPageViewModel categoryTreeImportPageViewModel)
+        public ActionResult Index(TextOptionImportPageViewModel textOptionImportPageViewModel)
         {
             try
             {
-                _textOptionImportPageViewModelBuilder.Import(categoryTreeImportPageViewModel.TextOptionName, categoryTreeImportPageViewModel.IsMultiCulture, categoryTreeImportPageViewModel.Area);
+                _textOptionImportPageViewModelBuilder.Import(textOptionImportPageViewModel, GetFileContent());
 
                 return RedirectToAction(nameof(Index), new { Message = "The import has started successfully. This may take some time. Don't start a new Import.", Success = true });
             }
@@ -38,6 +41,48 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
             {
                 return RedirectToAction(nameof(Index), new { ex.Message, Success = false });
             }
+        }
+
+        public DataSet GetFileContent()
+        {
+            if (Request.Files.Count <= 0)
+            {
+                throw new Exception("Could not find any uploaded file!");
+            }
+
+            var file = Request.Files[0];
+
+            if (string.IsNullOrWhiteSpace(file?.FileName) || file.ContentLength <= 0)
+            {
+                throw new Exception("Something is wrong with the uploaded file!");
+            }
+
+            IExcelDataReader reader;
+
+            //Must check file extension to adjust the reader to the excel file type
+            if (Path.GetExtension(file.FileName).Equals(".xls"))
+            {
+                reader = ExcelReaderFactory.CreateBinaryReader(file.InputStream);
+            }
+            else if (Path.GetExtension(file.FileName).Equals(".xlsx"))
+            {
+                reader = ExcelReaderFactory.CreateOpenXmlReader(file.InputStream);
+            }
+            else
+            {
+                throw new Exception("Wrong file ending. Use .xls or .xlsx!");
+            }
+
+            if (reader == null)
+            {
+                throw new Exception("File Reader is null. Something is wrong with the uploaded file!");
+            }
+
+            var content = reader.AsDataSet();
+
+            reader.Close();
+
+            return content;
         }
     }
 }

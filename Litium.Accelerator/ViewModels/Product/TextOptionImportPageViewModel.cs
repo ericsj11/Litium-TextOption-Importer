@@ -14,7 +14,6 @@ namespace Litium.Accelerator.ViewModels.Product
     {
         public string Title { get; set; }
         public string Text { get; set; }
-        public int NumberOfFiles { get; set; }
         public string TextOptionName { get; set; }
         public string Message { get; set; }
         public bool Success { get; set; }
