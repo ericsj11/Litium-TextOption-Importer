@@ -31,3 +31,4 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
     |Original|Original|
     |Frayed|Well worn|
 
+	Checkout the [Example Excel](/Example-Excel.xlsx)
