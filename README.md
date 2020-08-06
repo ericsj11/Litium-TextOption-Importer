@@ -18,9 +18,11 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
 	 i. The panel can be placed under different Areas by changing "ProductArea" here: [https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Panels/TextOptionImport.cs#L8).
  5. You can now use the panel. The files can't be to large! (Around 2mb, but it should not be a problem for TextOption, and only 2 columns in the Excel.
 
-	 i. **Important:** The **Key** and **Value** has to be on the first row of the Excel and starts with **Uppercase**!  
+	 i. Value is the translation and will be put into the cultures **en-US** and **sv-SE**. Dynamic support for language will come.
+		 
+	 ii. **Important:** The **Key** and **Value** has to be on the first row of the Excel and starts with **Uppercase**!  
 
-	 ii. **Important:** The content of the excel file has to look like this (Multiple of the same is OK, it will be ignored):
+	 iiii. **Important:** The content of the excel file has to look like this (Multiple of the same is OK, it will be ignored):
 	 
     |Key|Value|
     |--|--|
@@ -29,4 +31,3 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
     |Original|Original|
     |Frayed|Well worn|
 
-        iii. Value is the translation and will be put into **en-US** and **sv-SE**. Dynamic support for language will come.
