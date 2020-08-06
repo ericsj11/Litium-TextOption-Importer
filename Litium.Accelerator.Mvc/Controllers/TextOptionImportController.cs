@@ -35,7 +35,7 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
             {
                 _textOptionImportPageViewModelBuilder.Import(textOptionImportPageViewModel, GetFileContent());
 
-                return RedirectToAction(nameof(Index), new { Message = "The import has started successfully. This may take some time. Don't start a new Import.", Success = true });
+                return RedirectToAction(nameof(Index), new { Message = $"The import of Text Option {textOptionImportPageViewModel.TextOptionName} was successful!", Success = true });
             }
             catch (Exception ex)
             {
