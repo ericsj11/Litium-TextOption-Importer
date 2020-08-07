@@ -6,12 +6,16 @@ using System.Linq;
 using System.Web.Mvc;
 using Litium;
 using Litium.Accelerator.Builders;
+using Litium.Blocks;
 using Litium.Customers;
 using Litium.FieldFramework;
 using Litium.FieldFramework.FieldTypes;
+using Litium.Globalization;
 using Litium.Media;
 using Litium.Products;
+using Litium.Runtime;
 using Litium.Runtime.AutoMapper;
+using Litium.Sales;
 using Litium.Web.Models.Websites;
 using Litium.Websites;
 using Litium.Accelerator.ViewModels.Product;
@@ -20,6 +24,8 @@ namespace Litium.Accelerator.Builders.Product
 {
     public class TextOptionImportPageViewModelBuilder : IViewModelBuilder<TextOptionImportPageViewModel>
     {
+        private const string Key = "Key";
+        private const string Value = "Value";
         private readonly FieldDefinitionService _fieldDefinitionService;
 
         public TextOptionImportPageViewModelBuilder(FieldDefinitionService fieldDefinitionService)
@@ -31,32 +37,31 @@ namespace Litium.Accelerator.Builders.Product
         {
             var pageModel = currentPageModel.MapTo<TextOptionImportPageViewModel>();
 
-            var areas = GetAreas();
-
-            foreach (var area in areas)
-            {
-                pageModel.Areas.Add(new SelectListItem
-                {
-                    Text = area,
-                    Value = area
-                });
-            }
+            pageModel.Areas = CreateSelectListItemList(GetAreas());
 
             return pageModel;
         }
 
-        public IEnumerable<string> GetAreas()
+        private static List<SelectListItem> CreateSelectListItemList(IEnumerable<string> areas)
+        {
+            return areas.Select(area => new SelectListItem { Text = area, Value = area }).ToList();
+        }
+
+        public static IEnumerable<string> GetAreas()
         {
             return new List<string>
             {
                 nameof(ProductArea),
                 nameof(CustomerArea),
+                nameof(SalesArea),
                 nameof(WebsiteArea),
-                nameof(MediaArea)
+                nameof(GlobalizationArea),
+                nameof(MediaArea),
+                nameof(BlockArea),
             };
         }
 
-        public void Import(TextOptionImportPageViewModel textOptionImportPageViewModel, DataSet content)
+        public void ImportTextOptions(TextOptionImportPageViewModel textOptionImportPageViewModel, DataSet content)
         {
             if (string.IsNullOrWhiteSpace(textOptionImportPageViewModel.TextOptionName))
             {
@@ -68,85 +73,58 @@ namespace Litium.Accelerator.Builders.Product
                 throw new Exception("No Area is selected!");
             }
 
-            ImportTextOptions(content, textOptionImportPageViewModel);
+            if (content == null)
+            {
+                throw new Exception("Can't find any content in the Excel file!");
+            }
+
+            if (content.Tables.Count < 1 || content.Tables[0].Rows.Count < 1)
+            {
+                throw new Exception("Can't find any lines in the uploaded Excel!");
+            }
+
+            Import(textOptionImportPageViewModel, content);
         }
 
-        private void ImportTextOptions(DataSet content, TextOptionImportPageViewModel textOptionImportPageViewModel)
+        private void Import(TextOptionImportPageViewModel textOptionImportPageViewModel, DataSet content)
         {
-            var textOptions = new Dictionary<string, string>();
-
-            if (content != null)
-            {
-                var rowCount = 0;
-
-                if (content.Tables.Count < 1 || content.Tables[0].Rows.Count < 1)
-                {
-                    throw new Exception("Can't find any lines in the uploaded Excel");
-                }
-
-                var columnValueOfFirst = 0;
-                var columnValueOfSecond = 0;
-
-                foreach (DataRow row in content.Tables[0].Rows)
-                {
-                    rowCount++;
-
-                    var key = row.ItemArray[columnValueOfFirst].ToString();
-                    var value = row.ItemArray[columnValueOfSecond].ToString();
-
-                    if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
-                    {
-                        throw new Exception($"One of the columns on line {rowCount} is empty. Fix that or remove the row.");
-                    }
-
-                    if (rowCount == 1)
-                    {
-                        columnValueOfFirst = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf("Key");
-                        columnValueOfSecond = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf("Value");
-
-                        key = row.ItemArray[columnValueOfFirst].ToString();
-                        value = row.ItemArray[columnValueOfSecond].ToString();
-
-                        if (key != "Key")
-                        {
-                            throw new Exception("There must exist a column on the first row named: Key.");
-                        }
-                        if (value != "Value")
-                        {
-                            throw new Exception("There must exist a column on the first row named: Value.");
-                        }
-                    }
-                    else
-                    {
-                        if (!textOptions.ContainsKey(key))
-                        {
-                            textOptions.Add(key, value);
-                        }
-                    }
-                }
-            }
+            var textOptions = GetTextOptionsFromExcelContent(content);
 
             var timer = new Stopwatch();
             timer.Start();
 
-            FieldDefinition textOptionField;
-            switch (textOptionImportPageViewModel.Area)
+            var textOptionField = GetOrCreateTextOptionField(textOptionImportPageViewModel);
+
+            var option = CreateOptionOnNewTextOption(textOptionField);
+
+            foreach (var textOption in textOptions)
             {
-                default:
-                    textOptionField = GetProductAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
-                    break;
-                case nameof(CustomerArea):
-                    textOptionField = GetCustomerAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
-                    break;
-                case nameof(WebsiteArea):
-                    textOptionField = GetWebsiteAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
-                    break;
-                case nameof(MediaArea):
-                    textOptionField = GetMediaAreaFieldDefinition(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
-                    break;
+                AddOptionsToTextOptionField(textOptionImportPageViewModel, textOptionField, option, textOption);
             }
 
+            _fieldDefinitionService.Update(textOptionField);
 
+            timer.Stop();
+
+            this.Log().Info($"Time taken in seconds: {timer.Elapsed.TotalSeconds}");
+        }
+
+        private void AddOptionsToTextOptionField(TextOptionImportPageViewModel textOptionImportPageViewModel, FieldDefinition textOptionField, TextOption option, KeyValuePair<string, string> textOption)
+        {
+            if (option != null && option.Items.FirstOrDefault(x => x.Value == textOption.Key) == null)
+            {
+                this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value} to Field: {textOptionField.Id} in Area: {textOptionImportPageViewModel.Area}");
+
+                option.Items.Add(new TextOption.Item
+                {
+                    Value = textOption.Key,
+                    Name = new Dictionary<string, string> { { "en-US", textOption.Value }, { "sv-SE", textOption.Value } }
+                });
+            }
+        }
+
+        private static TextOption CreateOptionOnNewTextOption(FieldDefinition textOptionField)
+        {
             if (!(textOptionField.Option is TextOption option))
             {
                 textOptionField.Option = new TextOption
@@ -162,30 +140,85 @@ namespace Litium.Accelerator.Builders.Product
                 option.Items = new List<TextOption.Item>();
             }
 
-            foreach (var textOption in textOptions)
-            {
-                if (option != null && option.Items.FirstOrDefault(x => x.Value == textOption.Key) == null)
-                {
-                    this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value} to Field: {textOptionField.Id} in Area: {textOptionImportPageViewModel.Area}");
+            return option;
+        }
 
-                    option.Items.Add(new TextOption.Item
+        private FieldDefinition GetOrCreateTextOptionField(TextOptionImportPageViewModel textOptionImportPageViewModel)
+        {
+            switch (textOptionImportPageViewModel.Area)
+            {
+                default:
+                    return GetAreaFieldDefinition<ProductArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(CustomerArea):
+                    return GetAreaFieldDefinition<CustomerArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(SalesArea):
+                    return GetAreaFieldDefinition<SalesArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(WebsiteArea):
+                    return GetAreaFieldDefinition<WebsiteArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(GlobalizationArea):
+                    return GetAreaFieldDefinition<GlobalizationArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(MediaArea):
+                    return GetAreaFieldDefinition<MediaArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+                case nameof(BlockArea):
+                    return GetAreaFieldDefinition<BlockArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+            }
+        }
+
+        private static Dictionary<string, string> GetTextOptionsFromExcelContent(DataSet content)
+        {
+            var textOptions = new Dictionary<string, string>();
+
+            var rowCount = 0;
+            var columnValueOfFirst = 0;
+            var columnValueOfSecond = 0;
+
+            foreach (DataRow row in content.Tables[0].Rows)
+            {
+                rowCount++;
+
+                // This allow Key/Value to be placed in any column of the Excel.
+                var key = row.ItemArray[columnValueOfFirst].ToString();
+                var value = row.ItemArray[columnValueOfSecond].ToString();
+
+                if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+                {
+                    throw new Exception($"One of the columns on line {rowCount} is empty. Fix that or remove the row!");
+                }
+
+                if (rowCount == 1)
+                {
+                    ValidateFirstRowOfExcel(out columnValueOfFirst, out columnValueOfSecond, row);
+                }
+                else
+                {
+                    if (!textOptions.ContainsKey(key))
                     {
-                        Value = textOption.Key,
-                        Name = new Dictionary<string, string> { { "en-US", textOption.Value }, { "sv-SE", textOption.Value } }
-                    });
+                        textOptions.Add(key, value);
+                    }
                 }
             }
 
-            _fieldDefinitionService.Update(textOptionField);
-
-            timer.Stop();
-
-            this.Log().Info($"Time taken in seconds: {timer.Elapsed.TotalSeconds}");
+            return textOptions;
         }
 
-        private FieldDefinition GetProductAreaFieldDefinition(string textOptionName, bool isMultiCulture)
+        private static void ValidateFirstRowOfExcel(out int columnValueOfFirst, out int columnValueOfSecond, DataRow row)
         {
-            var textOptionField = _fieldDefinitionService.Get<ProductArea>(textOptionName)?.MakeWritableClone();
+            columnValueOfFirst = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(Key);
+            columnValueOfSecond = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(Value);
+
+            if (row.ItemArray[columnValueOfFirst].ToString() != Key)
+            {
+                throw new Exception("There must exist a column on the first row named: Key.");
+            }
+            if (row.ItemArray[columnValueOfSecond].ToString() != Value)
+            {
+                throw new Exception("There must exist a column on the first row named: Value.");
+            }
+        }
+
+        private FieldDefinition GetAreaFieldDefinition<T>(string textOptionName, bool isMultiCulture) where T : IArea
+        {
+            var textOptionField = _fieldDefinitionService.Get<T>(textOptionName)?.MakeWritableClone();
 
             if (textOptionField != null)
             {
@@ -197,7 +230,7 @@ namespace Litium.Accelerator.Builders.Product
                 return textOptionField;
             }
 
-            _fieldDefinitionService.Create(new FieldDefinition<ProductArea>(textOptionName, SystemFieldTypeConstants.TextOption)
+            _fieldDefinitionService.Create(new FieldDefinition<T>(textOptionName, SystemFieldTypeConstants.TextOption)
             {
                 Localizations =
                 {
@@ -213,112 +246,7 @@ namespace Litium.Accelerator.Builders.Product
                 }
             });
 
-            textOptionField = _fieldDefinitionService.Get<ProductArea>(textOptionName).MakeWritableClone();
-
-            return textOptionField;
-        }
-
-        private FieldDefinition GetCustomerAreaFieldDefinition(string textOptionName, bool isMultiCulture)
-        {
-            var textOptionField = _fieldDefinitionService.Get<CustomerArea>(textOptionName)?.MakeWritableClone();
-
-            if (textOptionField != null)
-            {
-                if (textOptionField.MultiCulture != isMultiCulture)
-                {
-                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
-                }
-
-                return textOptionField;
-            }
-
-            _fieldDefinitionService.Create(new FieldDefinition<CustomerArea>(textOptionName, SystemFieldTypeConstants.TextOption)
-            {
-                Localizations =
-                {
-                    ["sv-SE"] = {Name = textOptionName},
-                    ["en-US"] = {Name = textOptionName}
-                },
-                CanBeGridColumn = true,
-                CanBeGridFilter = true,
-                MultiCulture = isMultiCulture,
-                Option = new TextOption
-                {
-                    MultiSelect = false
-                }
-            });
-
-            textOptionField = _fieldDefinitionService.Get<CustomerArea>(textOptionName).MakeWritableClone();
-
-            return textOptionField;
-        }
-
-        private FieldDefinition GetWebsiteAreaFieldDefinition(string textOptionName, bool isMultiCulture)
-        {
-            var textOptionField = _fieldDefinitionService.Get<WebsiteArea>(textOptionName)?.MakeWritableClone();
-
-            if (textOptionField != null)
-            {
-                if (textOptionField.MultiCulture != isMultiCulture)
-                {
-                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
-                }
-
-                return textOptionField;
-            }
-
-            _fieldDefinitionService.Create(new FieldDefinition<WebsiteArea>(textOptionName, SystemFieldTypeConstants.TextOption)
-            {
-                Localizations =
-                {
-                    ["sv-SE"] = {Name = textOptionName},
-                    ["en-US"] = {Name = textOptionName}
-                },
-                CanBeGridColumn = true,
-                CanBeGridFilter = true,
-                MultiCulture = isMultiCulture,
-                Option = new TextOption
-                {
-                    MultiSelect = false
-                }
-            });
-
-            textOptionField = _fieldDefinitionService.Get<WebsiteArea>(textOptionName).MakeWritableClone();
-
-            return textOptionField;
-        }
-
-        private FieldDefinition GetMediaAreaFieldDefinition(string textOptionName, bool isMultiCulture)
-        {
-            var textOptionField = _fieldDefinitionService.Get<MediaArea>(textOptionName)?.MakeWritableClone();
-
-            if (textOptionField != null)
-            {
-                if (textOptionField.MultiCulture != isMultiCulture)
-                {
-                    throw new Exception($"A Text Option with ID: {textOptionField.Id} exists. It's not possible to change To or From Multi Culture.");
-                }
-
-                return textOptionField;
-            }
-
-            _fieldDefinitionService.Create(new FieldDefinition<MediaArea>(textOptionName, SystemFieldTypeConstants.TextOption)
-            {
-                Localizations =
-                {
-                    ["sv-SE"] = {Name = textOptionName},
-                    ["en-US"] = {Name = textOptionName}
-                },
-                CanBeGridColumn = true,
-                CanBeGridFilter = true,
-                MultiCulture = isMultiCulture,
-                Option = new TextOption
-                {
-                    MultiSelect = false
-                }
-            });
-
-            textOptionField = _fieldDefinitionService.Get<MediaArea>(textOptionName).MakeWritableClone();
+            textOptionField = _fieldDefinitionService.Get<T>(textOptionName).MakeWritableClone();
 
             return textOptionField;
         }

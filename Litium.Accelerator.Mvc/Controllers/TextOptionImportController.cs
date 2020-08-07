@@ -33,9 +33,9 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
         {
             try
             {
-                _textOptionImportPageViewModelBuilder.Import(textOptionImportPageViewModel, GetFileContent());
+                _textOptionImportPageViewModelBuilder.ImportTextOptions(textOptionImportPageViewModel, GetFileContent());
 
-                return RedirectToAction(nameof(Index), new { Message = $"The import of Text Option {textOptionImportPageViewModel.TextOptionName} was successful!", Success = true });
+                return RedirectToAction(nameof(Index), new { Message = $"The import of Text Option: \"{textOptionImportPageViewModel.TextOptionName}\" was successful in Area: \"{textOptionImportPageViewModel.Area}\"!", Success = true });
             }
             catch (Exception ex)
             {
