@@ -10,6 +10,10 @@
         padding: 15px;
     }
 
+    .form-section {
+        margin-bottom: 20px;
+    }
+
     .select-style {
         border: 1px solid #ccc;
         width: 175px;
@@ -79,28 +83,27 @@
 
     @using (Html.BeginForm("Index", "TextOptionImport", FormMethod.Post, new { enctype = "multipart/form-data" }))
     {
-        <br />
-        <h4>Upload File:</h4>
-        <input type="file" name="file" id="file" onchange='getFileName(this)' />
-        <br />
-        <br />
-
-        <h4>TextOption Area:</h4>
-        <div class="select-style">
-            @Html.DropDownListFor(model => model.Area, Model.Areas)
+        <div class="form-section">
+            <h4>Upload File:</h4>
+            <input type="file" name="file" id="file" onchange='getFileName(this)' />
         </div>
-        <br />
-        <br />
 
-        <h4>TextOption MultiCulture:</h4>
-        @Html.CheckBoxFor(m => m.IsMultiCulture, new { @class = "checkbox" })
-        <br />
-        <br />
+        <div class="form-section">
+            <h4>TextOption Area:</h4>
+            <div class="select-style">
+                @Html.DropDownListFor(model => model.Area, Model.Areas)
+            </div>
+        </div>
 
-        <h4>TextOption ID:</h4>
-        @Html.TextBoxFor(m => m.TextOptionName)
-        <br />
-        <br />
+        <div class="form-section">
+            <h4>TextOption MultiCulture:</h4>
+            @Html.CheckBoxFor(m => m.IsMultiCulture, new { @class = "checkbox" })
+        </div>
+
+        <div class="form-section">
+            <h4>TextOption ID:</h4>
+            @Html.TextBoxFor(m => m.TextOptionName)
+        </div>
 
         <input type="submit" value="Start Import" class="submit" />
     }
