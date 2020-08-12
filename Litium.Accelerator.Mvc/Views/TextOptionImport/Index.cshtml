@@ -5,7 +5,66 @@
     ViewContext.RouteData.DataTokens["BareLayout"] = true;
 }
 
-<div style="padding: 15px;">
+<style>
+    .container {
+        padding: 15px;
+    }
+
+    .select-style {
+        border: 1px solid #ccc;
+        width: 175px;
+        border-radius: 3px;
+        overflow: hidden;
+        background: #fafafa url("data:image/png;base64,R0lGODlhDwAUAIABAAAAAP///yH5BAEAAAEALAAAAAAPABQAAAIXjI+py+0Po5wH2HsXzmw//lHiSJZmUAAAOw==") no-repeat 90% 50%;
+    }
+
+        .select-style select {
+            padding: 5px 8px;
+            width: 130%;
+            border: none;
+            box-shadow: none;
+            background: transparent;
+            background-image: none;
+            -webkit-appearance: none;
+        }
+
+            .select-style select:focus {
+                outline: none;
+            }
+
+    .checkbox {
+        width: 25px;
+        height: 25px;
+    }
+
+    .submit {
+        padding: 5px 15px;
+    }
+</style>
+
+<script>
+    function getFileName(elm) {
+        const fullPath = elm.value;
+
+        if (fullPath) {
+            const startIndex = (fullPath.indexOf('\\') >= 0 ? fullPath.lastIndexOf('\\') : fullPath.lastIndexOf('/'));
+            let filename = fullPath.substring(startIndex);
+
+            if (filename.indexOf('\\') === 0 || filename.indexOf('/') === 0) {
+                filename = filename.substring(1);
+            }
+
+            const lastIndex = filename.lastIndexOf('.');
+
+            filename = filename.substr(0, lastIndex);
+
+            const textOptionId = document.getElementById("TextOptionName");
+            textOptionId.value = filename;
+        }
+    }
+</script>
+
+<div class="container">
     <h1>@Model.Title</h1>
 
     @Html.Raw(Model.Text)
@@ -14,19 +73,19 @@
     {
         <br />
         <h4>Upload File:</h4>
-        <input type="file" name="file" id="file" />
+        <input type="file" name="file" id="file" onchange='getFileName(this)' />
         <br />
         <br />
 
         <h4>TextOption Area:</h4>
-        <div style="width: 300px;">
+        <div class="select-style">
             @Html.DropDownListFor(model => model.Area, Model.Areas)
         </div>
         <br />
         <br />
 
         <h4>TextOption MultiCulture:</h4>
-        @Html.CheckBoxFor(m => m.IsMultiCulture)
+        @Html.CheckBoxFor(m => m.IsMultiCulture, new { @class = "checkbox" })
         <br />
         <br />
 
@@ -35,11 +94,11 @@
         <br />
         <br />
 
-        <input type="submit" value="Import" />
+        <input type="submit" value="Start Import" class="submit" />
     }
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))
     {
-        <h3 style="color: @(Model.Success ? "green" : "red");">@Model.Message</h3>
+        <h2 style="color: @(Model.Success ? "green" : "red");">@Model.Message</h2>
     }
 </div>
