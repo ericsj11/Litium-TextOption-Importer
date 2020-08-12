@@ -40,6 +40,14 @@
     .submit {
         padding: 5px 15px;
     }
+
+    .success {
+        color: green;
+    }
+
+    .error {
+        color: red;
+    }
 </style>
 
 <script>
@@ -99,6 +107,6 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))
     {
-        <h2 style="color: @(Model.Success ? "green" : "red");">@Model.Message</h2>
+        <h2 class="@(Model.Success ? "success" : "error")">@Model.Message</h2>
     }
 </div>
