@@ -6,7 +6,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
 
 ## Steps to Install and Use
 
- 1. Download [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) And [Excellibrary](https://code.google.com/archive/p/excellibrary/wikis) with NUGET into the project you place [TextOptionImportController.cs](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Controllers/TextOptionImportController.cs) (Most likley Litium.Accelerator.Mvc/Controllers)
+ 1. Download [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) And [Excellibrary](https://code.google.com/archive/p/excellibrary/wikis) with NUGET into the project you place [TextOptionImportController.cs](https://github.com/ericsj11/Litium-TextOption-Importer/blob/master/Litium.Accelerator.Mvc/Controllers/TextOptionImportController.cs) (Most likley Litium.Accelerator.Mvc)
  2. Copy all files in the Repo into the project. 
 
     i. Change namespaces if you need to add them to extension projects.
