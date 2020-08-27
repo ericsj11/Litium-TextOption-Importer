@@ -97,8 +97,8 @@ namespace Litium.Accelerator.Builders.Product
                 throw new Exception("MutiCulture Fields are not supported yet!");
             }
 
-            var dataSet = new DataSet($"DataSet_{textOption}");
-            var dataTable = new DataTable($"DataTable_{textOption}");
+            var dataSet = new DataSet(textOption);
+            var dataTable = new DataTable(textOption);
 
             dataTable.Columns.Add("Key", typeof(string));
 

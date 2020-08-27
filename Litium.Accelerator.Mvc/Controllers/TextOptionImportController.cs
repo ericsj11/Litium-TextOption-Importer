@@ -51,18 +51,26 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
             {
                 var dataSet = _textOptionImportPageViewModelBuilder.CreateTextOptions(textOptionImportPageViewModel);
 
-                DataSetHelper.CreateWorkbook($"MyExcelFile.xls", dataSet);
-
-                var fileBytes = System.IO.File.ReadAllBytes($"MyExcelFile.xls");
-
-                var fileName = "Test.xls";
-
-                return File(fileBytes, System.Net.Mime.MediaTypeNames.Application.Octet, fileName);
+                return CreateWorkBook(dataSet, textOptionImportPageViewModel.TextOption);
             }
             catch (Exception ex)
             {
                 return RedirectToAction(nameof(Index), new { ex.Message, Success = false });
             }
+        }
+
+        public ActionResult CreateWorkBook(DataSet dataSet, string textOption)
+        {
+            DataSetHelper.CreateWorkbook("Workbook.xls", dataSet);
+
+            var fileBytes = System.IO.File.ReadAllBytes("Workbook.xls");
+                
+            var splitTextOption = textOption.Split(';');
+            var area = splitTextOption[0];
+            var textOptionName = splitTextOption[1];
+
+            return File(fileBytes, System.Net.Mime.MediaTypeNames.Application.Octet,
+                $"{area}_{textOptionName}.xls");
         }
 
         public DataSet GetFileContent()
