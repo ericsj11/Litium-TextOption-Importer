@@ -38,13 +38,31 @@ namespace Litium.Accelerator.Builders.Product
             var pageModel = currentPageModel.MapTo<TextOptionImportPageViewModel>();
 
             pageModel.Areas = CreateSelectListItemList(GetAreas());
+            pageModel.TextOptions = CreateTextOptionSelectListItemList();
 
             return pageModel;
         }
 
-        private static List<SelectListItem> CreateSelectListItemList(IEnumerable<string> areas)
+        private List<SelectListItem> CreateSelectListItemList(IEnumerable<string> areas)
         {
             return areas.Select(area => new SelectListItem { Text = area, Value = area }).ToList();
+        }
+
+        private List<SelectListItem> CreateTextOptionSelectListItemList()
+        {
+            var textOptions = _fieldDefinitionService.GetAll<ProductArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList();
+            textOptions.AddRange(_fieldDefinitionService.GetAll<CustomerArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+            textOptions.AddRange(_fieldDefinitionService.GetAll<SalesArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+            textOptions.AddRange(_fieldDefinitionService.GetAll<WebsiteArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+            textOptions.AddRange(_fieldDefinitionService.GetAll<GlobalizationArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+            textOptions.AddRange(_fieldDefinitionService.GetAll<MediaArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+            textOptions.AddRange(_fieldDefinitionService.GetAll<BlockArea>().Where(x => x.FieldType == SystemFieldTypeConstants.TextOption).ToList());
+
+            return textOptions.Select(textOption => new SelectListItem
+            {
+                Text = $"{textOption.AreaType.Name}: {(string.IsNullOrWhiteSpace(textOption.Localizations.CurrentUICulture.Name) ? textOption.Id : textOption.Localizations.CurrentUICulture.Name)}",
+                Value = $"{textOption.AreaType.Name};{textOption.Id}"
+            }).ToList();
         }
 
         public static IEnumerable<string> GetAreas()
@@ -59,6 +77,63 @@ namespace Litium.Accelerator.Builders.Product
                 nameof(MediaArea),
                 nameof(BlockArea),
             };
+        }
+
+        public DataSet CreateTextOptions(TextOptionImportPageViewModel textOptionImportPageViewModel)
+        {
+            if (string.IsNullOrWhiteSpace(textOptionImportPageViewModel.TextOption))
+            {
+                throw new Exception("TextOption is Not selected!!");
+            }
+
+            var splitTextOption = textOptionImportPageViewModel.TextOption.Split(';');
+            var area = splitTextOption[0];
+            var textOption = splitTextOption[1];
+
+            var textOptionField = GetTextOptionField(area, textOption);
+
+            if (textOptionField.MultiCulture)
+            {
+                throw new Exception("MutiCulture Fields are not supported yet!");
+            }
+
+            var dataSet = new DataSet($"DataSet_{textOption}");
+            var dataTable = new DataTable($"DataTable_{textOption}");
+
+            dataTable.Columns.Add("Key", typeof(string));
+
+            if (textOptionField.Localizations.Count() > 1)
+            {
+                foreach (var local in textOptionField.Localizations)
+                {
+                    dataTable.Columns.Add(local.Key, typeof(string));
+                }
+            }
+            else
+            {
+                dataTable.Columns.Add("Value", typeof(string));
+            }
+
+            var options = textOptionField.Option as TextOption;
+            foreach (var item in options.Items)
+            {
+                var rowArray = new object[textOptionField.Localizations.Count() + 1];
+                rowArray[0] = item.Value;
+                var counter = 1;
+                foreach (var name in item.Name)
+                {
+                    rowArray[counter] = string.IsNullOrWhiteSpace(name.Value) ? item.Value : name.Value;
+                    counter++;
+                }
+                var row = dataTable.NewRow();
+                row.ItemArray = rowArray;
+
+                dataTable.Rows.Add(row);
+            }
+
+            dataSet.Tables.Add(dataTable);
+
+            return dataSet;
         }
 
         public void ImportTextOptions(TextOptionImportPageViewModel textOptionImportPageViewModel, DataSet content)
@@ -161,6 +236,27 @@ namespace Litium.Accelerator.Builders.Product
                     return GetAreaFieldDefinition<MediaArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
                 case nameof(BlockArea):
                     return GetAreaFieldDefinition<BlockArea>(textOptionImportPageViewModel.TextOptionName, textOptionImportPageViewModel.IsMultiCulture);
+            }
+        }
+
+        private FieldDefinition GetTextOptionField(string area, string textOptionId)
+        {
+            switch (area)
+            {
+                default:
+                    return _fieldDefinitionService.Get<ProductArea>(textOptionId);
+                case nameof(CustomerArea):
+                    return _fieldDefinitionService.Get<CustomerArea>(textOptionId);
+                case nameof(SalesArea):
+                    return _fieldDefinitionService.Get<SalesArea>(textOptionId);
+                case nameof(WebsiteArea):
+                    return _fieldDefinitionService.Get<WebsiteArea>(textOptionId);
+                case nameof(GlobalizationArea):
+                    return _fieldDefinitionService.Get<GlobalizationArea>(textOptionId);
+                case nameof(MediaArea):
+                    return _fieldDefinitionService.Get<MediaArea>(textOptionId);
+                case nameof(BlockArea):
+                    return _fieldDefinitionService.Get<BlockArea>(textOptionId);
             }
         }
 

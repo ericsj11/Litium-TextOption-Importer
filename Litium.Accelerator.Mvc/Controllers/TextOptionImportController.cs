@@ -3,6 +3,7 @@ using System.Data;
 using System.IO;
 using System.Web.Mvc;
 using ExcelDataReader;
+using ExcelLibrary;
 using Litium.Web.Models.Websites;
 using Litium.Accelerator.ViewModels.Product;
 using Litium.Accelerator.Builders.Product;
@@ -36,6 +37,27 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
                 _textOptionImportPageViewModelBuilder.ImportTextOptions(textOptionImportPageViewModel, GetFileContent());
 
                 return RedirectToAction(nameof(Index), new { Message = $"The import of Text Option: \"{textOptionImportPageViewModel.TextOptionName}\" was successful in Area: \"{textOptionImportPageViewModel.Area}\"!", Success = true });
+            }
+            catch (Exception ex)
+            {
+                return RedirectToAction(nameof(Index), new { ex.Message, Success = false });
+            }
+        }
+
+        [HttpPost]
+        public ActionResult DownloadExcel(TextOptionImportPageViewModel textOptionImportPageViewModel)
+        {
+            try
+            {
+                var dataSet = _textOptionImportPageViewModelBuilder.CreateTextOptions(textOptionImportPageViewModel);
+
+                DataSetHelper.CreateWorkbook($"MyExcelFile.xls", dataSet);
+
+                var fileBytes = System.IO.File.ReadAllBytes($"MyExcelFile.xls");
+
+                var fileName = "Test.xls";
+
+                return File(fileBytes, System.Net.Mime.MediaTypeNames.Application.Octet, fileName);
             }
             catch (Exception ex)
             {

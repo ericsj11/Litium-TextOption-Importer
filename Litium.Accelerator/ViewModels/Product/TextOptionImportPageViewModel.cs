@@ -20,6 +20,8 @@ namespace Litium.Accelerator.ViewModels.Product
         public List<SelectListItem> Areas { get; set; } = new List<SelectListItem>();
         public string Area { get; set; }
         public bool IsMultiCulture { get; set; }
+        public List<SelectListItem> TextOptions { get; set; } = new List<SelectListItem>();
+        public string TextOption { get; set; }
 
         [UsedImplicitly]
         void IAutoMapperConfiguration.Configure(IMapperConfigurationExpression cfg)
