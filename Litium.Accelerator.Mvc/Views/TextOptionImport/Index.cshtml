@@ -74,6 +74,15 @@
 
             filename = filename.substr(0, lastIndex);
 
+            if (filename.includes("_")) {
+                const splitFilename = filename.split("_");
+                const area = splitFilename[0];
+                filename = splitFilename[1];
+
+                const element = document.getElementById("Area");
+                element.value = area;
+            }
+
             const textOptionId = document.getElementById("TextOptionName");
             textOptionId.value = filename;
         }

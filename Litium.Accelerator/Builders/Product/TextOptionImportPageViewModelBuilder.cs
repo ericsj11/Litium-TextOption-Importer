@@ -27,10 +27,12 @@ namespace Litium.Accelerator.Builders.Product
         private const string Key = "Key";
         private const string Value = "Value";
         private readonly FieldDefinitionService _fieldDefinitionService;
+        private readonly LanguageService _languageService;
 
-        public TextOptionImportPageViewModelBuilder(FieldDefinitionService fieldDefinitionService)
+        public TextOptionImportPageViewModelBuilder(FieldDefinitionService fieldDefinitionService, LanguageService languageService)
         {
             _fieldDefinitionService = fieldDefinitionService;
+            _languageService = languageService;
         }
 
         public TextOptionImportPageViewModel Build(PageModel currentPageModel)
@@ -184,17 +186,28 @@ namespace Litium.Accelerator.Builders.Product
             this.Log().Info($"Time taken in seconds: {timer.Elapsed.TotalSeconds}");
         }
 
-        private void AddOptionsToTextOptionField(TextOptionImportPageViewModel textOptionImportPageViewModel, FieldDefinition textOptionField, TextOption option, KeyValuePair<string, string> textOption)
+        private void AddOptionsToTextOptionField(TextOptionImportPageViewModel textOptionImportPageViewModel, FieldDefinition textOptionField, TextOption option, KeyValuePair<string, List<KeyValuePair<string, string>>> textOption)
         {
             if (option != null && option.Items.FirstOrDefault(x => x.Value == textOption.Key) == null)
             {
-                this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value} to Field: {textOptionField.Id} in Area: {textOptionImportPageViewModel.Area}");
+                this.Log().Info($"Adding Text Option: {textOption.Key}/{textOption.Value.FirstOrDefault().Value} to Field: {textOptionField.Id} in Area: {textOptionImportPageViewModel.Area}");
 
-                option.Items.Add(new TextOption.Item
+                if (textOption.Value.FirstOrDefault().Key == Value)
                 {
-                    Value = textOption.Key,
-                    Name = new Dictionary<string, string> { { "en-US", textOption.Value }, { "sv-SE", textOption.Value } }
-                });
+                    option.Items.Add(new TextOption.Item
+                    {
+                        Value = textOption.Key,
+                        Name = new Dictionary<string, string> { { "en-US", textOption.Value.FirstOrDefault().Value }, { "sv-SE", textOption.Value.FirstOrDefault().Value } }
+                    });
+                }
+                else
+                {
+                    option.Items.Add(new TextOption.Item
+                    {
+                        Value = textOption.Key,
+                        Name = textOption.Value.ToDictionary(x => x.Key, x => x.Value)
+                    });
+                }
             }
         }
 
@@ -260,13 +273,14 @@ namespace Litium.Accelerator.Builders.Product
             }
         }
 
-        private static Dictionary<string, string> GetTextOptionsFromExcelContent(DataSet content)
+        private Dictionary<string, List<KeyValuePair<string, string>>> GetTextOptionsFromExcelContent(DataSet content)
         {
-            var textOptions = new Dictionary<string, string>();
+            var textOptions = new Dictionary<string, List<KeyValuePair<string, string>>>();
 
             var rowCount = 0;
             var columnValueOfFirst = 0;
             var columnValueOfSecond = 0;
+            var localizations = new List<string>();
 
             foreach (DataRow row in content.Tables[0].Rows)
             {
@@ -274,22 +288,42 @@ namespace Litium.Accelerator.Builders.Product
 
                 // This allow Key/Value to be placed in any column of the Excel.
                 var key = row.ItemArray[columnValueOfFirst].ToString();
-                var value = row.ItemArray[columnValueOfSecond].ToString();
+                var value = columnValueOfSecond == -1 ? string.Empty : row.ItemArray[columnValueOfSecond].ToString();
 
-                if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+                if (string.IsNullOrWhiteSpace(key))
                 {
-                    throw new Exception($"One of the columns on line {rowCount} is empty. Fix that or remove the row!");
+                    throw new Exception($"Key does not exists on line {rowCount}. Fix that!");
                 }
 
                 if (rowCount == 1)
                 {
-                    ValidateFirstRowOfExcel(out columnValueOfFirst, out columnValueOfSecond, row);
+                    ValidateFirstRowOfExcel(out columnValueOfFirst, out columnValueOfSecond, out localizations, row);
                 }
                 else
                 {
                     if (!textOptions.ContainsKey(key))
                     {
-                        textOptions.Add(key, value);
+                        if (localizations.Any())
+                        {
+                            var list = new List<KeyValuePair<string, string>>();
+                            foreach (var localization in localizations)
+                            {
+
+                                var locationValueColumn = content.Tables[0].Rows[0].ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(localization);
+                                var locationValue = row.ItemArray[locationValueColumn].ToString();
+                                list.Add(new KeyValuePair<string, string>(localization, locationValue));
+                            }
+
+                            textOptions.Add(key, list);
+                        }
+                        else
+                        {
+                            var list = new List<KeyValuePair<string, string>>();
+                            var keyValuePair = new KeyValuePair<string, string>(Value, value);
+                            list.Add(keyValuePair);
+
+                            textOptions.Add(key, list);
+                        }
                     }
                 }
             }
@@ -297,18 +331,21 @@ namespace Litium.Accelerator.Builders.Product
             return textOptions;
         }
 
-        private static void ValidateFirstRowOfExcel(out int columnValueOfFirst, out int columnValueOfSecond, DataRow row)
+        private void ValidateFirstRowOfExcel(out int columnValueOfFirst, out int columnValueOfSecond, out List<string> localizations, DataRow row)
         {
             columnValueOfFirst = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(Key);
             columnValueOfSecond = row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(Value);
+            localizations = new List<string>();
+            var languages = _languageService.GetAll();
+
 
             if (row.ItemArray[columnValueOfFirst].ToString() != Key)
             {
                 throw new Exception("There must exist a column on the first row named: Key.");
             }
-            if (row.ItemArray[columnValueOfSecond].ToString() != Value)
+            if (columnValueOfSecond == -1 || row.ItemArray[columnValueOfSecond].ToString() != Value)
             {
-                throw new Exception("There must exist a column on the first row named: Value.");
+                localizations.AddRange(languages.Select(language => row.ItemArray[row.ItemArray.Where(x => x != null && x != DBNull.Value).Cast<string>().ToList().IndexOf(language.Id)].ToString()));
             }
         }
 
