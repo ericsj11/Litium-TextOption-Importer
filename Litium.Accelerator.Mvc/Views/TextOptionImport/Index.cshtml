@@ -5,6 +5,7 @@
     ViewContext.RouteData.DataTokens["BareLayout"] = true;
 }
 
+
 <style>
     .container {
         padding: 15px;
@@ -121,8 +122,27 @@
         <input type="submit" value="Start Import" class="submit" />
     }
 
+
     @if (!string.IsNullOrWhiteSpace(Model.Message))
     {
         <h2 class="@(Model.Success ? "success" : "error")">@Model.Message</h2>
+    }
+
+    <br />
+    <hr />
+    <br />
+
+    <h1>Text Option Export</h1>
+
+    @using (Html.BeginForm("DownloadExcel", "TextOptionImport", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        <div class="form-section">
+            <h4>TextOption:</h4>
+            <div class="select-style select-textoption-style">
+                @Html.DropDownListFor(model => model.TextOption, Model.TextOptions)
+            </div>
+        </div>
+
+        <input type="submit" value="Start Export" class="submit" />
     }
 </div>

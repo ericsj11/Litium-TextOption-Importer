@@ -1,10 +1,11 @@
 using System;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Web.Mvc;
 using ExcelDataReader;
-using ExcelLibrary;
 using Litium.Web.Models.Websites;
+using OfficeOpenXml;
 using Litium.Accelerator.ViewModels.Product;
 using Litium.Accelerator.Builders.Product;
 
@@ -61,16 +62,36 @@ namespace Litium.Accelerator.Mvc.Controllers.TextOptionImport
 
         public ActionResult CreateWorkBook(DataSet dataSet, string textOption)
         {
-            DataSetHelper.CreateWorkbook("Workbook.xls", dataSet);
+            var filePath = ConfigurationManager.AppSettings["TextOptionExportPath"];
 
-            var fileBytes = System.IO.File.ReadAllBytes("Workbook.xls");
-                
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new Exception("TextOptionExportPath is empty. Set it in web.config.");
+            }
+
+            if (!Directory.Exists(filePath))
+            {
+                Directory.CreateDirectory(filePath);
+            }
+
             var splitTextOption = textOption.Split(';');
             var area = splitTextOption[0];
             var textOptionName = splitTextOption[1];
 
+            if (System.IO.File.Exists($"{filePath}{area}_{textOptionName}.xlsx"))
+            {
+                System.IO.File.Delete($"{filePath}{area}_{textOptionName}.xlsx");
+            }
+
+            using var package = new ExcelPackage(new FileInfo($"{filePath}{area}_{textOptionName}.xlsx"));
+            var ws = package.Workbook.Worksheets.Add(textOptionName);
+            ws.Cells["A1"].LoadFromDataTable(dataSet.Tables[0], true);
+            package.Save();
+
+            var fileBytes = System.IO.File.ReadAllBytes($"{filePath}{area}_{textOptionName}.xlsx");
+
             return File(fileBytes, System.Net.Mime.MediaTypeNames.Application.Octet,
-                $"{area}_{textOptionName}.xls");
+                $"{area}_{textOptionName}.xlsx");
         }
 
         public DataSet GetFileContent()

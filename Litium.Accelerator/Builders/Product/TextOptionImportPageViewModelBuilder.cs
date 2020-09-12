@@ -96,7 +96,7 @@ namespace Litium.Accelerator.Builders.Product
 
             if (textOptionField.MultiCulture)
             {
-                throw new Exception("MutiCulture Fields are not supported yet!");
+                throw new Exception("MultiCulture Fields are not supported yet!");
             }
 
             var dataSet = new DataSet(textOption);
