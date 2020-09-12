@@ -1,6 +1,6 @@
 # Litium TextOption Importer
 
-An Importer and Exporter for [Litiums E-Commerce Platform](https://www.litium.com/) to create and update TextOptions fields for all Areas. (Mulitlanguage Export is not supported) (Litium 8 compatible)
+An Importer and Exporter for [Litiums E-Commerce Platform](https://www.litium.com/) to create and update TextOptions fields for all Areas. (MulitLanguage Export is not supported yet) (Litium 8 compatible)
 ![Import UI](/TextOptionImporter.PNG)
 
 
