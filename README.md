@@ -10,7 +10,7 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
  2. Copy all files in the Repo into the project. 
 
     i. Change namespaces if you need to add them to extension projects.
- 3. Add this to your appSettings in web.config <add key="TextOptionExportPath" value="C:\Project\Files\TextOptionExport\" />
+ 3. Add this key to your appSettings in web.config ```<add key="TextOptionExportPath" value="C:\Project\Files\TextOptionExport\" />```
  4. Build the project.
  5. Create a page in the CMS with the url "Panels/TextOptionImport".  And add describing texts if needed.
 
