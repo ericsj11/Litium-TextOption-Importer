@@ -41,4 +41,5 @@ An importer for [Litiums E-Commerce Platform](https://www.litium.com/) to create
     |Frayed|Well worn|Använd|
 
 	Checkout the [Example Excel for all Languages](/All-Language-Example-Excel.xlsx)
+	
 	Or the [Example Excel for all Specific Languages](/Specific-Language-Example-Excel.xlsx)
